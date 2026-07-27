@@ -26,6 +26,7 @@ const getSearchText = (project: ProjectItem) =>
     project.summary,
     project.status,
     ...(project.techStack || []),
+    ...(project.tags || []),
     ...(project.highlights || []),
   ]
     .filter(Boolean)
@@ -140,16 +141,26 @@ function ProjectRow({project}: ProjectProps) {
 export default function ProjectsDashboard({projects}: ProjectsDashboardProps) {
   const [query, setQuery] = useState('')
   const [view, setView] = useState<'cards' | 'list'>('cards')
+  const [selectedTag, setSelectedTag] = useState('')
+
+  const availableTags = useMemo(
+    () =>
+      Array.from(new Set(projects.flatMap((project) => project.tags || []))).sort(
+        (first, second) => first.localeCompare(second),
+      ),
+    [projects],
+  )
 
   const filteredProjects = useMemo(() => {
     const term = normalize(query)
 
-    if (!term) {
-      return projects
-    }
+    return projects.filter((project) => {
+      const matchesSearch = !term || getSearchText(project).includes(term)
+      const matchesTag = !selectedTag || project.tags?.includes(selectedTag)
 
-    return projects.filter((project) => getSearchText(project).includes(term))
-  }, [projects, query])
+      return matchesSearch && matchesTag
+    })
+  }, [projects, query, selectedTag])
 
   return (
     <section className="rise-in rise-in-delay-2 mt-10">
@@ -200,6 +211,26 @@ export default function ProjectsDashboard({projects}: ProjectsDashboardProps) {
         </div>
       </div>
 
+      {availableTags.length ? (
+        <div className="mt-5 border-t border-brand-black/10 pt-5">
+          <label className="flex w-full max-w-xs flex-col gap-2 text-sm font-semibold text-brand-black/65">
+            Filter by tag
+            <select
+              value={selectedTag}
+              onChange={(event) => setSelectedTag(event.target.value)}
+              className="h-11 rounded-md border border-brand-black/10 bg-brand-white px-3 text-sm font-medium text-brand-black shadow-sm outline-none transition focus:border-brand-red focus:ring-0"
+            >
+              <option value="">All tags</option>
+              {availableTags.map((tag) => (
+                <option key={tag} value={tag}>
+                  {tag}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+      ) : null}
+
       {filteredProjects.length ? (
         <div
           className={
@@ -222,7 +253,7 @@ export default function ProjectsDashboard({projects}: ProjectsDashboardProps) {
             No projects match your search.
           </p>
           <p className="mt-2 text-sm text-brand-black/55">
-            Try a project name, partner, or technology.
+            Try a project name, partner, technology, or a different tag.
           </p>
         </div>
       )}

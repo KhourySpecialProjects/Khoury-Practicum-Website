@@ -213,6 +213,7 @@ export const PROJECTS_QUERY = defineQuery(/* groq */ `
       alt
     },
     techStack,
+    tags,
     highlights,
     overview,
     problem,
@@ -255,6 +256,7 @@ export const PROJECT_BY_SLUG_QUERY = defineQuery(/* groq */ `
       alt
     },
     techStack,
+    tags,
     highlights,
     overview,
     problem,

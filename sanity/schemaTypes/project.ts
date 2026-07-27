@@ -100,6 +100,16 @@ export const project = defineType({
       validation: (rule) => rule.min(1).unique(),
     }),
     defineField({
+      name: 'tags',
+      title: 'Tags',
+      type: 'array',
+      description:
+        'Add technologies, project types, or capabilities used for projects-page filtering.',
+      of: [defineArrayMember({type: 'string'})],
+      options: {layout: 'tags'},
+      validation: (rule) => rule.unique(),
+    }),
+    defineField({
       name: 'highlights',
       title: 'Highlights',
       type: 'array',

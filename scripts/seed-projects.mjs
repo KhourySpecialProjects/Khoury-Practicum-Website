@@ -124,6 +124,45 @@ const projects = [
   },
 ]
 
+const tagsByProjectSlug = {
+  'video-management-portal': [
+    'React',
+    'Management System',
+    'Data Management',
+    'AWS',
+  ],
+  'guard-connect': ['React', 'Management System', 'Workflow Automation', 'AWS'],
+  'automated-course-scheduler': [
+    'React',
+    'FastAPI',
+    'Scheduling',
+    'Workflow Automation',
+    'Data Management',
+  ],
+  galley: [
+    'React',
+    'Management System',
+    'Workflow Automation',
+    'Academic Publishing',
+  ],
+  nexus: ['React', 'FastAPI', 'Management System', 'Data Management', 'AWS'],
+  supplynet: [
+    'React',
+    'Management System',
+    'Inventory Management',
+    'Workflow Automation',
+    'AWS',
+  ],
+  examengine: [
+    'React',
+    'FastAPI',
+    'Scheduling',
+    'Graph Algorithms',
+    'Workflow Automation',
+    'AWS',
+  ],
+}
+
 const client = getCliClient({apiVersion: '2025-02-19'})
 const slugs = projects.map((project) => project.slug)
 const existing = await client.fetch(
@@ -133,21 +172,60 @@ const existing = await client.fetch(
 const existingSlugs = new Set(existing.map((project) => project.slug))
 const missingProjects = projects.filter((project) => !existingSlugs.has(project.slug))
 
-if (!missingProjects.length) {
-  console.log('All requested projects already exist; no documents were changed.')
+if (missingProjects.length) {
+  const transaction = client.transaction()
+
+  for (const project of missingProjects) {
+    const {slug, ...fields} = project
+    transaction.create({
+      _type: 'project',
+      ...fields,
+      slug: {_type: 'slug', current: slug},
+    })
+  }
+
+  await transaction.commit()
+}
+
+const tagDocuments = await client.fetch('*[_type == "projectTag"]{_id, title}')
+const tagTitleById = new Map(tagDocuments.map((tag) => [tag._id, tag.title]))
+const savedProjects = await client.fetch(
+  '*[_type == "project" && slug.current in $slugs]{_id, "slug": slug.current, tags}',
+  {slugs: Object.keys(tagsByProjectSlug)},
+)
+const projectsNeedingTags = savedProjects
+  .map((project) => {
+    const currentTags = project.tags || []
+    const hasOnlyStrings = currentTags.every((tag) => typeof tag === 'string')
+    const tags = currentTags.length
+      ? currentTags
+          .map((tag) =>
+            typeof tag === 'string' ? tag : tagTitleById.get(tag._ref),
+          )
+          .filter(Boolean)
+      : tagsByProjectSlug[project.slug]
+
+    return {project, hasOnlyStrings, tags: [...new Set(tags)]}
+  })
+  .filter(({project, hasOnlyStrings, tags}) =>
+    Boolean(tags.length && (!hasOnlyStrings || !project.tags?.length)),
+  )
+
+if (projectsNeedingTags.length) {
+  const transaction = client.transaction()
+
+  for (const {project, tags} of projectsNeedingTags) {
+    transaction.patch(project._id, (patch) => patch.set({tags}))
+  }
+
+  await transaction.commit({autoGenerateArrayKeys: true})
+}
+
+if (!missingProjects.length && !projectsNeedingTags.length) {
+  console.log('All requested projects and tags already exist; no documents were changed.')
   process.exit(0)
 }
 
-const transaction = client.transaction()
-
-for (const project of missingProjects) {
-  const {slug, ...fields} = project
-  transaction.create({
-    _type: 'project',
-    ...fields,
-    slug: {_type: 'slug', current: slug},
-  })
-}
-
-await transaction.commit()
-console.log(`Created ${missingProjects.length} project document(s): ${missingProjects.map((project) => project.title).join(', ')}`)
+console.log(
+  `Created ${missingProjects.length} project document(s) and updated tags on ${projectsNeedingTags.length} project(s).`,
+)

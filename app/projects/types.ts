@@ -27,6 +27,7 @@ export type ProjectItem = {
   status?: string
   featuredImage?: ProjectImage
   techStack?: string[]
+  tags?: string[]
   highlights?: string[]
   repositoryUrl?: string
   deploymentUrl?: string
