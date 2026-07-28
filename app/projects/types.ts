@@ -25,6 +25,7 @@ export type ProjectItem = {
   client: string
   summary: string
   status?: string
+  semester?: string
   featuredImage?: ProjectImage
   techStack?: string[]
   tags?: string[]

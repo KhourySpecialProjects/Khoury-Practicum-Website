@@ -100,6 +100,17 @@ export const project = defineType({
       validation: (rule) => rule.min(1).unique(),
     }),
     defineField({
+      name: 'semester',
+      title: 'Semester',
+      type: 'string',
+      description: 'Use a season and year, for example “Fall 2025” or “Spring 2026”.',
+      validation: (rule) =>
+        rule.regex(/^(Spring|Summer|Fall|Winter) \d{4}$/, {
+          name: 'semester',
+          invert: false,
+        }),
+    }),
+    defineField({
       name: 'tags',
       title: 'Tags',
       type: 'array',
