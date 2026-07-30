@@ -112,10 +112,10 @@ export const project = defineType({
     }),
     defineField({
       name: 'tags',
-      title: 'Tags',
+      title: 'Other Tags',
       type: 'array',
       description:
-        'Add technologies, project types, or capabilities used for projects-page filtering.',
+        'Add project types, domains, or capabilities for the “Other” projects-page filter. Add technologies to Tech Stack instead.',
       of: [defineArrayMember({type: 'string'})],
       options: {layout: 'tags'},
       validation: (rule) => rule.unique(),

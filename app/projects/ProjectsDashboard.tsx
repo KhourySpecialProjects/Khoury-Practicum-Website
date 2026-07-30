@@ -19,6 +19,13 @@ import type {
 } from './types'
 
 const normalize = (value: string) => value.trim().toLowerCase()
+const semesterPattern = /^(Spring|Summer|Fall|Winter) \d{4}$/i
+
+const getProjectSemester = (project: ProjectItem) =>
+  project.semester || project.tags?.find((tag) => semesterPattern.test(tag))
+
+const getOtherTags = (project: ProjectItem) =>
+  (project.tags || []).filter((tag) => !semesterPattern.test(tag))
 
 const getSearchText = (project: ProjectItem) =>
   [
@@ -26,9 +33,9 @@ const getSearchText = (project: ProjectItem) =>
     project.client,
     project.summary,
     project.status,
-    project.semester,
+    getProjectSemester(project),
     ...(project.techStack || []),
-    ...(project.tags || []),
+    ...getOtherTags(project),
     ...(project.highlights || []),
   ]
     .filter(Boolean)
@@ -233,7 +240,7 @@ export default function ProjectsDashboard({projects}: ProjectsDashboardProps) {
       Array.from(
         new Set(
           projects
-            .map((project) => project.semester)
+            .map(getProjectSemester)
             .filter((semester): semester is string => Boolean(semester)),
         ),
       ).sort((first, second) => second.localeCompare(first)),
@@ -250,7 +257,7 @@ export default function ProjectsDashboard({projects}: ProjectsDashboardProps) {
 
   const tags = useMemo(
     () =>
-      Array.from(new Set(projects.flatMap((project) => project.tags || []))).sort(
+      Array.from(new Set(projects.flatMap(getOtherTags))).sort(
         (first, second) => first.localeCompare(second),
       ),
     [projects],
@@ -262,11 +269,11 @@ export default function ProjectsDashboard({projects}: ProjectsDashboardProps) {
     return projects.filter((project) => {
       const matchesSearch = !term || getSearchText(project).includes(term)
       const matchesSemester =
-        !selectedSemesters.length || selectedSemesters.includes(project.semester || '')
+        !selectedSemesters.length || selectedSemesters.includes(getProjectSemester(project) || '')
       const matchesTech =
         !selectedTech.length || selectedTech.some((tech) => project.techStack?.includes(tech))
       const matchesTags =
-        !selectedTags.length || selectedTags.some((tag) => project.tags?.includes(tag))
+        !selectedTags.length || selectedTags.some((tag) => getOtherTags(project).includes(tag))
 
       return matchesSearch && matchesSemester && matchesTech && matchesTags
     })
@@ -283,6 +290,13 @@ export default function ProjectsDashboard({projects}: ProjectsDashboardProps) {
 
   const filterGroups = [
     {
+      id: 'tech' as const,
+      label: 'Tech stack',
+      options: techStack,
+      selectedOptions: selectedTech,
+      onToggle: (tech: string) => toggleFilter(tech, selectedTech, setSelectedTech),
+    },
+    {
       id: 'semester' as const,
       label: 'Semester',
       options: semesters,
@@ -291,15 +305,8 @@ export default function ProjectsDashboard({projects}: ProjectsDashboardProps) {
         toggleFilter(semester, selectedSemesters, setSelectedSemesters),
     },
     {
-      id: 'tech' as const,
-      label: 'Tech stack',
-      options: techStack,
-      selectedOptions: selectedTech,
-      onToggle: (tech: string) => toggleFilter(tech, selectedTech, setSelectedTech),
-    },
-    {
       id: 'tags' as const,
-      label: 'Tags',
+      label: 'Other',
       options: tags,
       selectedOptions: selectedTags,
       onToggle: (tag: string) => toggleFilter(tag, selectedTags, setSelectedTags),
@@ -341,7 +348,7 @@ export default function ProjectsDashboard({projects}: ProjectsDashboardProps) {
                 'inline-flex h-11 items-center gap-2 rounded-md border px-3 text-sm font-semibold shadow-sm transition focus-visible:outline focus-visible:outline-offset-2 focus-visible:outline-brand-red',
                 filterPanelOpen || hasActiveFilters
                   ? 'border-brand-red bg-brand-red text-brand-white'
-                  : 'border-brand-black/10 bg-brand-white/85 text-brand-black hover:border-brand-red/40 hover:text-brand-red',
+                  : 'border-brand-black/10 bg-brand-white/85 text-brand-black/55 hover:border-brand-red/40 hover:text-brand-black',
               )}
             >
               <SlidersHorizontal className="h-4 w-4" aria-hidden />
@@ -449,7 +456,7 @@ export default function ProjectsDashboard({projects}: ProjectsDashboardProps) {
               />
             </label>
             <p className="mt-3 text-sm text-brand-black/55">
-              Select multiple {currentFilterGroup?.label.toLowerCase()} to refine the project list.
+              Select multiple to refine the project list.
             </p>
             <div className="mt-5 max-h-72 overflow-y-auto pr-1">
               {currentFilterGroup ? (
