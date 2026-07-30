@@ -100,6 +100,27 @@ export const project = defineType({
       validation: (rule) => rule.min(1).unique(),
     }),
     defineField({
+      name: 'semester',
+      title: 'Semester',
+      type: 'string',
+      description: 'Use a season and year, for example “Fall 2025” or “Spring 2026”.',
+      validation: (rule) =>
+        rule.regex(/^(Spring|Summer|Fall|Winter) \d{4}$/, {
+          name: 'semester',
+          invert: false,
+        }),
+    }),
+    defineField({
+      name: 'tags',
+      title: 'Other Tags',
+      type: 'array',
+      description:
+        'Add project types, domains, or capabilities for the “Other” projects-page filter. Add technologies to Tech Stack instead.',
+      of: [defineArrayMember({type: 'string'})],
+      options: {layout: 'tags'},
+      validation: (rule) => rule.unique(),
+    }),
+    defineField({
       name: 'highlights',
       title: 'Highlights',
       type: 'array',

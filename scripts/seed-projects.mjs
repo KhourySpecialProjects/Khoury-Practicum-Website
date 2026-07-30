@@ -124,6 +124,34 @@ const projects = [
   },
 ]
 
+const tagsByProjectSlug = {
+  'video-management-portal': [
+    'Management System',
+    'Data Management',
+  ],
+  'guard-connect': ['Management System', 'Workflow Automation'],
+  'automated-course-scheduler': [
+    'Scheduling',
+    'Workflow Automation',
+    'Data Management',
+  ],
+  galley: ['Management System', 'Workflow Automation', 'Academic Publishing'],
+  nexus: ['Management System', 'Data Management'],
+  supplynet: [
+    'Management System',
+    'Inventory Management',
+    'Workflow Automation',
+  ],
+  examengine: [
+    'Scheduling',
+    'Graph Algorithms',
+    'Workflow Automation',
+  ],
+}
+
+const legacyTechnologyTags = new Set(['React', 'AWS', 'FastAPI'])
+const semesterPattern = /^(Spring|Summer|Fall|Winter) \d{4}$/i
+
 const client = getCliClient({apiVersion: '2025-02-19'})
 const slugs = projects.map((project) => project.slug)
 const existing = await client.fetch(
@@ -133,21 +161,73 @@ const existing = await client.fetch(
 const existingSlugs = new Set(existing.map((project) => project.slug))
 const missingProjects = projects.filter((project) => !existingSlugs.has(project.slug))
 
-if (!missingProjects.length) {
-  console.log('All requested projects already exist; no documents were changed.')
+if (missingProjects.length) {
+  const transaction = client.transaction()
+
+  for (const project of missingProjects) {
+    const {slug, ...fields} = project
+    transaction.create({
+      _type: 'project',
+      ...fields,
+      slug: {_type: 'slug', current: slug},
+    })
+  }
+
+  await transaction.commit()
+}
+
+const tagDocuments = await client.fetch('*[_type == "projectTag"]{_id, title}')
+const tagTitleById = new Map(tagDocuments.map((tag) => [tag._id, tag.title]))
+const savedProjects = await client.fetch(
+  '*[_type == "project" && slug.current in $slugs]{_id, "slug": slug.current, semester, tags}',
+  {slugs: Object.keys(tagsByProjectSlug)},
+)
+const projectsNeedingTags = savedProjects
+  .map((project) => {
+    const currentTags = project.tags || []
+    const hasOnlyStrings = currentTags.every((tag) => typeof tag === 'string')
+    const tags = currentTags.length
+      ? currentTags
+          .map((tag) =>
+            typeof tag === 'string' ? tag : tagTitleById.get(tag._ref),
+          )
+          .filter(Boolean)
+      : tagsByProjectSlug[project.slug] || []
+
+    const semester = project.semester || tags.find((tag) => semesterPattern.test(tag))
+    const otherTags = [...new Set(tags)].filter(
+      (tag) => !legacyTechnologyTags.has(tag) && !semesterPattern.test(tag),
+    )
+    const hasSameTags =
+      hasOnlyStrings &&
+      otherTags.length === currentTags.length &&
+      otherTags.every((tag) => currentTags.includes(tag))
+    const hasSameSemester = semester === project.semester
+
+    return {project, hasOnlyStrings, hasSameSemester, hasSameTags, semester, tags: otherTags}
+  })
+  .filter(
+    ({hasOnlyStrings, hasSameSemester, hasSameTags}) =>
+      !hasOnlyStrings || !hasSameTags || !hasSameSemester,
+  )
+
+if (projectsNeedingTags.length) {
+  const transaction = client.transaction()
+
+  for (const {project, semester, tags} of projectsNeedingTags) {
+    transaction.patch(project._id, (patch) =>
+      patch.set({tags, ...(semester ? {semester} : {})}),
+    )
+  }
+
+  await transaction.commit({autoGenerateArrayKeys: true})
+}
+
+if (!missingProjects.length && !projectsNeedingTags.length) {
+  console.log('All requested projects and tags already exist; no documents were changed.')
   process.exit(0)
 }
 
-const transaction = client.transaction()
-
-for (const project of missingProjects) {
-  const {slug, ...fields} = project
-  transaction.create({
-    _type: 'project',
-    ...fields,
-    slug: {_type: 'slug', current: slug},
-  })
-}
-
-await transaction.commit()
-console.log(`Created ${missingProjects.length} project document(s): ${missingProjects.map((project) => project.title).join(', ')}`)
+console.log(
+  `Created ${missingProjects.length} project document(s) and updated tags on ${projectsNeedingTags.length} project(s).`,
+)

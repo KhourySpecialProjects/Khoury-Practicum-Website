@@ -200,6 +200,7 @@ export const PROJECTS_QUERY = defineQuery(/* groq */ `
     client,
     summary,
     status,
+    semester,
     displayOrder,
     featuredImage {
       asset-> {
@@ -213,6 +214,7 @@ export const PROJECTS_QUERY = defineQuery(/* groq */ `
       alt
     },
     techStack,
+    tags,
     highlights,
     overview,
     problem,
@@ -242,6 +244,7 @@ export const PROJECT_BY_SLUG_QUERY = defineQuery(/* groq */ `
     client,
     summary,
     status,
+    semester,
     displayOrder,
     featuredImage {
       asset-> {
@@ -255,6 +258,7 @@ export const PROJECT_BY_SLUG_QUERY = defineQuery(/* groq */ `
       alt
     },
     techStack,
+    tags,
     highlights,
     overview,
     problem,
