@@ -9,5 +9,5 @@ services:
       - /app/node_modules
       - /app/.next
     env_file:
-      - .env.local
+      - .env
     command: npm run dev
