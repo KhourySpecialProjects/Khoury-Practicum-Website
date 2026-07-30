@@ -1,6 +1,6 @@
 # Practicum Site
 
-Next.js 16 app with an embedded Sanity Studio. The public site lives in the App Router under `app/`, and the CMS admin is mounted at `/studio`.
+Next.js 16 site with an embedded Sanity Studio. The public site uses the App Router under `app/`; the CMS is available locally at `/studio`.
 
 ## Tech Stack
 
@@ -16,14 +16,14 @@ Next.js 16 app with an embedded Sanity Studio. The public site lives in the App 
 
 - Node.js 22.x recommended. The Docker image uses `node:22-alpine`.
 - npm. Use the committed `package-lock.json` instead of switching package managers.
-- Access to the Sanity project used by this site.
+- Access to the Sanity project used by this site. Studio editing requires a Sanity account with access to the configured project and dataset.
 
 ## Environment Setup
 
 Create a local environment file from the example:
 
 ```bash
-cp .env.example .env.local
+cp .env.example .env
 ```
 
 Fill in the Sanity values:
@@ -33,7 +33,7 @@ NEXT_PUBLIC_SANITY_DATASET="production"
 NEXT_PUBLIC_SANITY_PROJECT_ID="your-sanity-project-id"
 ```
 
-`NEXT_PUBLIC_SANITY_PROJECT_ID` is required. The app reads these values in `sanity/env.ts`, and startup will fail if either the project ID or dataset is missing.
+Both values are required. The app reads them in `sanity/env.ts`, and startup fails if either is missing.
 
 Optional:
 
@@ -66,7 +66,7 @@ Open:
 - Site: `http://localhost:3000`
 - Sanity Studio: `http://localhost:3000/studio`
 
-The Studio uses the same Sanity project and dataset from `.env.local`.
+The Studio uses the same Sanity project and dataset from `.env`.
 
 ## Available Scripts
 
@@ -102,7 +102,7 @@ You can run the project in Docker if you do not want to use a local Node install
 docker compose up --build
 ```
 
-This reads `.env.local`, mounts the project into the container, and serves the app on `http://localhost:3000`.
+This reads `.env`, mounts the project into the container, and serves the app on `http://localhost:3000`.
 
 Stop the container with:
 
@@ -143,16 +143,26 @@ The Studio includes:
 
 Keep schema changes versioned with the application code so future developers can reproduce the Studio locally.
 
+### Project filter taxonomy
+
+Project documents have three distinct filter fields. Keep them separate in Studio so the Projects page remains easy to browse:
+
+- **Tech Stack**: technologies and platforms, such as React, Next.js, FastAPI, or AWS.
+- **Semester**: one value in the format `Fall 2025`, `Spring 2026`, `Summer 2026`, or `Winter 2026`.
+- **Other Tags**: project domains or capabilities, such as Video Management, Academic Publishing, Scheduling, or Workflow Automation.
+
+The Projects page exposes these as **Tech Stack**, **Semester**, and **Other** filters. It also recognizes old semester-formatted tags so existing content continues to filter correctly, but new and edited projects should use the dedicated Semester field.
+
 ## Development Notes
 
 - This project uses the Next.js App Router. Routes, layouts, and pages belong under `app/`.
 - This repo includes local Next.js documentation in `node_modules/next/dist/docs/`. Check those docs before changing Next-specific APIs or conventions because this version may differ from older examples.
-- Keep secrets out of git. Only commit `.env.example`; use `.env.local` for local values.
+- Keep secrets out of git. Only commit `.env.example`; use `.env` for local values.
 - Prefer small, focused changes and run `npm run lint` plus `npm run build` before opening a PR or deploying.
 
 ## Troubleshooting
 
-If the app fails with a missing Sanity variable error, confirm `.env.local` exists and includes both `NEXT_PUBLIC_SANITY_PROJECT_ID` and `NEXT_PUBLIC_SANITY_DATASET`.
+If the app fails with a missing Sanity variable error, confirm `.env` exists and includes both `NEXT_PUBLIC_SANITY_PROJECT_ID` and `NEXT_PUBLIC_SANITY_DATASET`.
 
 If dependencies behave strangely, remove generated install artifacts and reinstall from the lockfile:
 
