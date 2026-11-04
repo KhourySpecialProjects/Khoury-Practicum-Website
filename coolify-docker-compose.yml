@@ -4,9 +4,9 @@ services:
     restart: unless-stopped
     expose:
       - "3000"
-    environment:
+    nvironment:
       - HOSTNAME=0.0.0.0
-      - NEXT_PUBLIC_SANITY_ID=${NEXT_PUBLIC_SANITY_ID}
+      - NEXT_PUBLIC_SANITY_PROJECT_ID=${NEXT_PUBLIC_SANITY_PROJECT_ID}
       - NEXT_PUBLIC_SANITY_DATASET=${NEXT_PUBLIC_SANITY_DATASET}
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://localhost:3000').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
