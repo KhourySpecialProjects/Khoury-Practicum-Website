@@ -1,20 +1,16 @@
 services:
   web:
     build: .
-    container_name: practicum-site
-    restart: unless-stopped #allows site to redeploy if crash
+    restart: unless-stopped
     expose:
-      - "3000" #remove ports allow expose
-
+      - "3000"
     environment:
-      - NODE_ENV=production  #ensure in production mode
-      - PORT=3000            #open production port
-      
-    healthcheck:  #lets coolify know when the container is ready to receive traffic
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000"]
+      - HOSTNAME=0.0.0.0
+      - NEXT_PUBLIC_SANITY_ID=${NEXT_PUBLIC_SANITY_ID}
+      - NEXT_PUBLIC_SANITY_DATASET=${NEXT_PUBLIC_SANITY_DATASET}
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 30s
       timeout: 5s
       retries: 3
-      start_period: 20s
-      
-    command: sh -c "npm run build && npm start"  #changed for production
+      start_period: 30s
